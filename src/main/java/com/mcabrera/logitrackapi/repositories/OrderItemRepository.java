@@ -17,13 +17,13 @@ public class OrderItemRepository extends BaseRepository<OrderItem, Long> {
 
     public List<OrderItem> findByOrderId(Long orderId) {
         return entityManager.createQuery(
-                        "SELECT oi FROM OrderItem oi WHERE oi.orderId = :orderId", OrderItem.class)
+                        "SELECT oi FROM OrderItem oi WHERE oi.order.orderId = :orderId", OrderItem.class)
                 .setParameter("orderId", orderId)
                 .getResultList();
     }
 
     public void deleteByOrderId(Long orderId) {
-        entityManager.createQuery("DELETE FROM OrderItem oi WHERE oi.orderId = :orderId")
+        entityManager.createQuery("DELETE FROM OrderItem oi WHERE oi.order.orderId = :orderId")
                 .setParameter("orderId", orderId)
                 .executeUpdate();
     }
@@ -44,7 +44,7 @@ public class OrderItemRepository extends BaseRepository<OrderItem, Long> {
     public BigDecimal calculateOrderTotal(Long orderId) {
         try {
             TypedQuery<BigDecimal> query = entityManager.createQuery(
-                    "SELECT SUM(oi.subtotal) FROM OrderItem oi WHERE oi.orderId = :orderId", BigDecimal.class);
+                    "SELECT SUM(oi.subtotal) FROM OrderItem oi WHERE oi.order.orderId = :orderId", BigDecimal.class);
             query.setParameter("orderId", orderId);
             BigDecimal result = query.getSingleResult();
             return result != null ? result : BigDecimal.ZERO;

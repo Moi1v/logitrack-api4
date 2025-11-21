@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments")  // Comillas dobles para PostgreSQL
 public class Payment {
 
     @Id
@@ -24,7 +24,7 @@ public class Payment {
     private BigDecimal amount;
 
     @Column(nullable = false)
-    private String method; // Cash, Card, Transfer
+    private String method;
 
     public Payment() {}
 

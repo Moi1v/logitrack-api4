@@ -34,7 +34,46 @@ public class ProductService {
     }
 
     public Optional<Product> save(Product product) {
-        return productRepository.save(product);
+        try {
+            System.out.println("=== ProductService.save() ===");
+            System.out.println("Product ID: " + product.getProductId());
+            System.out.println("Product Name: " + product.getName());
+
+            // Verificar si es una actualización o creación nueva
+            if (product.getProductId() != null) {
+                System.out.println("Modo: ACTUALIZACIÓN");
+                // Es una actualización - verificar si el nombre ya existe en OTRO producto
+                Optional<Product> existingByName = productRepository.findByName(product.getName());
+                if (existingByName.isPresent() &&
+                        !existingByName.get().getProductId().equals(product.getProductId())) {
+                    System.err.println("ERROR: El nombre ya existe en otro producto");
+                    return Optional.empty();
+                }
+            } else {
+                System.out.println("Modo: CREACIÓN NUEVA");
+                // Es creación nueva - verificar si el nombre ya existe
+                Optional<Product> existingByName = productRepository.findByName(product.getName());
+                if (existingByName.isPresent()) {
+                    System.err.println("ERROR: El nombre ya existe: " + existingByName.get().getProductId());
+                    return Optional.empty();
+                }
+            }
+
+            System.out.println("Guardando producto en repositorio...");
+            Optional<Product> saved = productRepository.save(product);
+
+            if (saved.isPresent()) {
+                System.out.println("Producto guardado exitosamente con ID: " + saved.get().getProductId());
+            } else {
+                System.err.println("ERROR: El repositorio retornó Optional.empty()");
+            }
+
+            return saved;
+        } catch (Exception e) {
+            System.err.println("EXCEPCIÓN en ProductService.save(): " + e.getMessage());
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 
     public void delete(Product product) {

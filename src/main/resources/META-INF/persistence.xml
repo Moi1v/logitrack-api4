@@ -3,11 +3,20 @@
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
              version="3.0">
-    <persistence-unit name="logitrackapiPU"
-                      transaction-type="RESOURCE_LOCAL">
+    <persistence-unit name="logitrackapiPU" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
+        <!-- Listar explícitamente las entidades -->
+        <class>com.mcabrera.logitrackapi.models.Customer</class>
+        <class>com.mcabrera.logitrackapi.models.Product</class>
+        <class>com.mcabrera.logitrackapi.models.Order</class>
+        <class>com.mcabrera.logitrackapi.models.OrderItem</class>
+        <class>com.mcabrera.logitrackapi.models.Payment</class>
+
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+
         <properties>
+            <!-- Las propiedades se configuran programáticamente en JpaProducer -->
         </properties>
     </persistence-unit>
 </persistence>

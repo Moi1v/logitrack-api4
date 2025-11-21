@@ -1,26 +1,30 @@
 package com.mcabrera.logitrackapi.models;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CollectionId;
 
-@Entity(name = "Customers")
+@Entity
+@Table(name = "customers")  // Backticks fuerzan el nombre exacto
 public class Customer {
 
     @Id
-    @GeneratedValue
-    @Column(name = "customerId")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "customer_id")
     private Long customerId;
 
-    @Column(name = "fullName")
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "taxId")
+    @Column(name = "tax_id", unique = true)
     private String taxId;
-    @Column(name = "email")
-    private String email;
-    private String address;
-    private Boolean active;
 
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    private String address;
+
+    private Boolean active = true;
+
+    // Getters y Setters
     public Long getCustomerId() {
         return customerId;
     }
@@ -71,14 +75,13 @@ public class Customer {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("Customer{");
-        sb.append("customerId=").append(customerId);
-        sb.append(", fullName='").append(fullName).append('\'');
-        sb.append(", taxId='").append(taxId).append('\'');
-        sb.append(", email='").append(email).append('\'');
-        sb.append(", address='").append(address).append('\'');
-        sb.append(", active=").append(active);
-        sb.append('}');
-        return sb.toString();
+        return "Customer{" +
+                "customerId=" + customerId +
+                ", fullName='" + fullName + '\'' +
+                ", taxId='" + taxId + '\'' +
+                ", email='" + email + '\'' +
+                ", address='" + address + '\'' +
+                ", active=" + active +
+                '}';
     }
 }

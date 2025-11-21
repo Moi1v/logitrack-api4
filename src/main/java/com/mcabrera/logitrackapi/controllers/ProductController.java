@@ -44,7 +44,7 @@ public class ProductController {
         Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Producto no encontrado")
+                    .entity(new ErrorResponse("Producto no encontrado"))
                     .build();
         }
         return Response.ok(product.get()).build();
@@ -55,13 +55,21 @@ public class ProductController {
         // Validaciones
         if (product.getName() == null || product.getName().isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("El nombre del producto es requerido")
+                    .entity(new ErrorResponse("El nombre del producto es requerido"))
                     .build();
         }
 
         if (product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("El precio debe ser mayor a cero")
+                    .entity(new ErrorResponse("El precio debe ser mayor a cero"))
+                    .build();
+        }
+
+        // Verificar si ya existe un producto con ese nombre
+        Optional<Product> existingProduct = productService.findByName(product.getName());
+        if (existingProduct.isPresent()) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(new ErrorResponse("Ya existe un producto con el nombre: " + product.getName()))
                     .build();
         }
 
@@ -69,10 +77,13 @@ public class ProductController {
             product.setActive(true);
         }
 
+        // Asegurarse de que el ID sea null para creación
+        product.setProductId(null);
+
         Optional<Product> savedProduct = productService.save(product);
         if (savedProduct.isEmpty()) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("Ya existe un producto con ese nombre")
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al guardar el producto"))
                     .build();
         }
 
@@ -87,8 +98,19 @@ public class ProductController {
         Optional<Product> existingProduct = productService.findById(id);
         if (existingProduct.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Producto no encontrado")
+                    .entity(new ErrorResponse("Producto no encontrado"))
                     .build();
+        }
+
+        // Verificar si el nuevo nombre ya existe en otro producto
+        if (product.getName() != null && !product.getName().isBlank()) {
+            Optional<Product> productWithSameName = productService.findByName(product.getName());
+            if (productWithSameName.isPresent() &&
+                    !productWithSameName.get().getProductId().equals(id)) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity(new ErrorResponse("Ya existe otro producto con el nombre: " + product.getName()))
+                        .build();
+            }
         }
 
         Product productToUpdate = existingProduct.get();
@@ -96,12 +118,14 @@ public class ProductController {
         productToUpdate.setDescription(product.getDescription());
         productToUpdate.setPrice(product.getPrice());
         productToUpdate.setCategory(product.getCategory());
-        productToUpdate.setActive(product.getActive());
+        if (product.getActive() != null) {
+            productToUpdate.setActive(product.getActive());
+        }
 
         Optional<Product> updatedProduct = productService.save(productToUpdate);
         if (updatedProduct.isEmpty()) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("Ya existe un producto con ese nombre")
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new ErrorResponse("Error al actualizar el producto"))
                     .build();
         }
 
@@ -114,12 +138,12 @@ public class ProductController {
         Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Producto no encontrado")
+                    .entity(new ErrorResponse("Producto no encontrado"))
                     .build();
         }
 
         productService.deactivateProduct(id);
-        return Response.ok().entity("Producto desactivado").build();
+        return Response.ok().entity(new SuccessResponse("Producto desactivado")).build();
     }
 
     @PATCH
@@ -128,12 +152,12 @@ public class ProductController {
         Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Producto no encontrado")
+                    .entity(new ErrorResponse("Producto no encontrado"))
                     .build();
         }
 
         productService.activateProduct(id);
-        return Response.ok().entity("Producto activado").build();
+        return Response.ok().entity(new SuccessResponse("Producto activado")).build();
     }
 
     @DELETE
@@ -142,11 +166,44 @@ public class ProductController {
         Optional<Product> product = productService.findById(id);
         if (product.isEmpty()) {
             return Response.status(Response.Status.NOT_FOUND)
-                    .entity("Producto no encontrado")
+                    .entity(new ErrorResponse("Producto no encontrado"))
                     .build();
         }
 
         productService.delete(product.get());
         return Response.status(Response.Status.NO_CONTENT).build();
+    }
+
+    // Clases internas para respuestas
+    public static class ErrorResponse {
+        private String error;
+
+        public ErrorResponse(String error) {
+            this.error = error;
+        }
+
+        public String getError() {
+            return error;
+        }
+
+        public void setError(String error) {
+            this.error = error;
+        }
+    }
+
+    public static class SuccessResponse {
+        private String message;
+
+        public SuccessResponse(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders")  // Comillas dobles para PostgreSQL
 public class Order {
 
     @Id

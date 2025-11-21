@@ -18,41 +18,90 @@ import java.util.Set;
 @ApplicationScoped
 public class JpaProducer {
 
+    private EntityManagerFactory emf;
+
     @Produces
     @ApplicationScoped
     public EntityManagerFactory createEntityManagerFactory() {
+        if (emf != null) {
+            return emf;
+        }
+
+        System.out.println("=== Iniciando configuración de JPA ===");
+
         Map<String, Object> props = new HashMap<>();
-        props.put("jakarta.persistence.jdbc.driver", get("DB_DRIVER"));
-        props.put("jakarta.persistence.jdbc.url", get("DB_URL"));
-        props.put("jakarta.persistence.jdbc.user", get("DB_USER"));
+
+        String dbUrl = get("DB_URL");
+        String dbUser = get("DB_USER");
+        String dbDriver = get("DB_DRIVER");
+
+        System.out.println("DB_URL: " + dbUrl);
+        System.out.println("DB_USER: " + dbUser);
+        System.out.println("DB_DRIVER: " + dbDriver);
+
+        props.put("jakarta.persistence.jdbc.driver", dbDriver);
+        props.put("jakarta.persistence.jdbc.url", dbUrl);
+        props.put("jakarta.persistence.jdbc.user", dbUser);
         props.put("jakarta.persistence.jdbc.password", get("DB_PASSWORD"));
 
         props.put("hibernate.dialect", get("HIBERNATE_DIALECT"));
         props.put("hibernate.hbm2ddl.auto", get("HIBERNATE_DDL"));
         props.put("hibernate.show_sql", get("HIBERNATE_SHOW_SQL"));
         props.put("hibernate.format_sql", get("HIBERNATE_FORMAT_SQL"));
-        props.put("hibernate.archive.autodetection", "class");
 
-        // escanea el/los paquetes donde se encuetran los @Entity
+        // Configuración para respetar nombres de tablas exactos
+        props.put("hibernate.physical_naming_strategy",
+                "org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl");
+        props.put("hibernate.implicit_naming_strategy",
+                "org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl");
+
+        // Importante: deshabilitar la conversión automática de nombres
+        props.put("hibernate.globally_quoted_identifiers", "true");
+        props.put("hibernate.globally_quoted_identifiers_skip_column_definitions", "true");
+
+        // Escanear entidades
         Set<Class<?>> entities = new Reflections("com.mcabrera.logitrackapi.models")
                 .getTypesAnnotatedWith(Entity.class);
-        // si se tienen más paquetes, se debe repetir con otro Reflections y añadir al set
+
+        System.out.println("Entidades encontradas: " + entities.size());
+        for (Class<?> entity : entities) {
+            System.out.println("  - " + entity.getSimpleName());
+        }
 
         props.put(AvailableSettings.LOADED_CLASSES, new ArrayList<>(entities));
 
+        try {
+            emf = Persistence.createEntityManagerFactory("logitrackapiPU", props);
+            System.out.println("=== EntityManagerFactory creado exitosamente ===");
 
-        return Persistence.createEntityManagerFactory("logitrackapiPU", props);
+            // Probar la conexión
+            EntityManager testEm = emf.createEntityManager();
+            testEm.close();
+            System.out.println("=== Conexión a BD verificada ===");
+
+            return emf;
+        } catch (Exception e) {
+            System.err.println("ERROR al crear EntityManagerFactory:");
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Produces
     @RequestScoped
     public EntityManager createEntityManager(EntityManagerFactory emf) {
-        return emf.createEntityManager();
+        EntityManager em = emf.createEntityManager();
+        System.out.println("EntityManager creado para request");
+        return em;
     }
 
     private String get(String name) {
         String p = System.getProperty(name);
         if (p != null) return p;
-        return System.getenv(name); // fallback si no viene del .env interno
+        String env = System.getenv(name);
+        if (env != null) return env;
+
+        System.err.println("WARNING: Propiedad " + name + " no encontrada");
+        return null;
     }
 }

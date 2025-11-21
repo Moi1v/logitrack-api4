@@ -12,7 +12,7 @@ public class Product {
     @Column(name = "product_id")
     private Long productId;
 
-    @Column(nullable = false)
+    @Column(nullable = false)  // SIN unique=true
     private String name;
 
     private String description;
@@ -76,14 +76,13 @@ public class Product {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("Product{");
-        sb.append("productId=").append(productId);
-        sb.append(", name='").append(name).append('\'');
-        sb.append(", description='").append(description).append('\'');
-        sb.append(", price=").append(price);
-        sb.append(", category='").append(category).append('\'');
-        sb.append(", active=").append(active);
-        sb.append('}');
-        return sb.toString();
+        return "Product{" +
+                "productId=" + productId +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", price=" + price +
+                ", category='" + category + '\'' +
+                ", active=" + active +
+                '}';
     }
 }

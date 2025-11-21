@@ -17,7 +17,7 @@ public class PaymentRepository extends BaseRepository<Payment, Long> {
 
     public List<Payment> findByOrderId(Long orderId) {
         return entityManager.createQuery(
-                        "SELECT p FROM Payment p WHERE p.orderId = :orderId ORDER BY p.paymentDate DESC", Payment.class)
+                        "SELECT p FROM Payment p WHERE p.order.orderId = :orderId ORDER BY p.paymentDate DESC", Payment.class)
                 .setParameter("orderId", orderId)
                 .getResultList();
     }
@@ -25,7 +25,7 @@ public class PaymentRepository extends BaseRepository<Payment, Long> {
     public BigDecimal getTotalPaidByOrder(Long orderId) {
         try {
             TypedQuery<BigDecimal> query = entityManager.createQuery(
-                    "SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.orderId = :orderId", BigDecimal.class);
+                    "SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.order.orderId = :orderId", BigDecimal.class);
             query.setParameter("orderId", orderId);
             return query.getSingleResult();
         } catch (Exception e) {
@@ -36,7 +36,7 @@ public class PaymentRepository extends BaseRepository<Payment, Long> {
     public Optional<Payment> findLatestByOrder(Long orderId) {
         try {
             TypedQuery<Payment> query = entityManager.createQuery(
-                    "SELECT p FROM Payment p WHERE p.orderId = :orderId ORDER BY p.paymentDate DESC", Payment.class);
+                    "SELECT p FROM Payment p WHERE p.order.orderId = :orderId ORDER BY p.paymentDate DESC", Payment.class);
             query.setParameter("orderId", orderId);
             query.setMaxResults(1);
             return Optional.ofNullable(query.getSingleResult());
