@@ -16,33 +16,36 @@ public abstract class BaseRepository<T, ID> {
     @Transactional
     public Optional<T> save(T entity) {
         try {
-            System.out.println("=== BaseRepository.save() ===");
-            System.out.println("Entity type: " + entity.getClass().getSimpleName());
-            System.out.println("EntityManager: " + (entityManager != null ? "OK" : "NULL"));
+            EntityManager em = entityManager;
 
-            if (entityManager == null) {
-                System.err.println("ERROR: EntityManager es NULL!");
-                return Optional.empty();
+            // Verificar si la transacción está activa, si no, iniciarla
+            if (!em.getTransaction().isActive()) {
+                em.getTransaction().begin();
             }
 
-            System.out.println("EntityManager contains entity: " + entityManager.contains(entity));
-
-            if (entityManager.contains(entity)) {
-                System.out.println("Haciendo merge...");
-                entity = entityManager.merge(entity);
+            T result;
+            if (em.contains(entity)) {
+                // La entidad ya está en el contexto de persistencia
+                result = entity;
             } else {
-                System.out.println("Haciendo persist...");
-                entityManager.persist(entity);
+                // Hacer merge para entidades nuevas o detached
+                result = em.merge(entity);
             }
 
-            System.out.println("Haciendo flush...");
-            entityManager.flush();
+            em.flush();
 
-            System.out.println("Entidad guardada exitosamente");
-            return Optional.of(entity);
+            // Hacer commit si iniciamos la transacción aquí
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().commit();
+            }
+
+            return Optional.of(result);
         } catch (Exception e) {
-            System.err.println("ERROR en BaseRepository.save(): " + e.getClass().getName());
-            System.err.println("Mensaje: " + e.getMessage());
+            // Rollback en caso de error
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            System.err.println("ERROR en BaseRepository.save(): " + e.getMessage());
             e.printStackTrace();
             return Optional.empty();
         }
@@ -72,7 +75,28 @@ public abstract class BaseRepository<T, ID> {
 
     @Transactional
     public void delete(T entity) {
-        entityManager.remove(entityManager.contains(entity) ? entity : entityManager.merge(entity));
+        try {
+            EntityManager em = entityManager;
+
+            if (!em.getTransaction().isActive()) {
+                em.getTransaction().begin();
+            }
+
+            T managedEntity = em.contains(entity) ? entity : em.merge(entity);
+            em.remove(managedEntity);
+            em.flush();
+
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().commit();
+            }
+        } catch (Exception e) {
+            if (entityManager.getTransaction().isActive()) {
+                entityManager.getTransaction().rollback();
+            }
+            System.err.println("ERROR en delete: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Transactional

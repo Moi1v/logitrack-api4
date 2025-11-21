@@ -1,6 +1,8 @@
 package com.mcabrera.logitrackapi.controllers;
 
+import com.mcabrera.logitrackapi.dtos.ProductStatsDto;
 import com.mcabrera.logitrackapi.models.Product;
+import com.mcabrera.logitrackapi.repositories.ProductRepository;
 import com.mcabrera.logitrackapi.services.ProductService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -17,6 +19,9 @@ public class ProductController {
 
     @Inject
     private ProductService productService;
+
+    @Inject
+    private ProductRepository productRepository;
 
     @GET
     public Response getAllProducts() {
@@ -36,6 +41,47 @@ public class ProductController {
     public Response getProductsByCategory(@PathParam("category") String category) {
         List<Product> products = productService.getProductsByCategory(category);
         return Response.ok(products).build();
+    }
+
+    @GET
+    @Path("/top-selling")
+    public Response getTopSellingProducts(@QueryParam("limit") @DefaultValue("10") int limit) {
+        if (limit <= 0 || limit > 100) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El límite debe estar entre 1 y 100"))
+                    .build();
+        }
+
+        List<ProductStatsDto> topProducts = productRepository.findTopSellingProducts(limit);
+        return Response.ok(topProducts).build();
+    }
+
+    @GET
+    @Path("/top-selling/category/{category}")
+    public Response getTopSellingProductsByCategory(
+            @PathParam("category") String category,
+            @QueryParam("limit") @DefaultValue("10") int limit) {
+
+        if (limit <= 0 || limit > 100) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse("El límite debe estar entre 1 y 100"))
+                    .build();
+        }
+
+        List<ProductStatsDto> topProducts = productRepository.findTopSellingProductsByCategory(category, limit);
+        return Response.ok(topProducts).build();
+    }
+
+    @GET
+    @Path("/{id}/stats")
+    public Response getProductStats(@PathParam("id") Long id) {
+        Optional<ProductStatsDto> stats = productRepository.getProductSalesStats(id);
+        if (stats.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(new ErrorResponse("Producto no encontrado"))
+                    .build();
+        }
+        return Response.ok(stats.get()).build();
     }
 
     @GET

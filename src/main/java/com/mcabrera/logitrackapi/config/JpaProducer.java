@@ -2,6 +2,7 @@ package com.mcabrera.logitrackapi.config;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Disposes;
 import jakarta.enterprise.inject.Produces;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
@@ -59,6 +60,10 @@ public class JpaProducer {
         props.put("hibernate.globally_quoted_identifiers", "true");
         props.put("hibernate.globally_quoted_identifiers_skip_column_definitions", "true");
 
+        // Configuración de transacciones
+        props.put("hibernate.connection.autocommit", "false");
+        props.put("hibernate.enable_lazy_load_no_trans", "false");
+
         // Escanear entidades
         Set<Class<?>> entities = new Reflections("com.mcabrera.logitrackapi.models")
                 .getTypesAnnotatedWith(Entity.class);
@@ -91,8 +96,18 @@ public class JpaProducer {
     @RequestScoped
     public EntityManager createEntityManager(EntityManagerFactory emf) {
         EntityManager em = emf.createEntityManager();
-        System.out.println("EntityManager creado para request");
+        System.out.println("EntityManager creado para request: " + em.hashCode());
         return em;
+    }
+
+    public void closeEntityManager(@Disposes EntityManager em) {
+        if (em != null && em.isOpen()) {
+            System.out.println("Cerrando EntityManager: " + em.hashCode());
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            em.close();
+        }
     }
 
     private String get(String name) {
